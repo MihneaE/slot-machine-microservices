@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <title>CyberSlots - React & Microservices</title>
+
+    <style>
+        body { margin: 0; background-color: #0f0f0f; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; overflow: hidden; }
+        #root { display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; }
+
+        /* UI Container */
+        .ui-container { position: absolute; top: 20px; width: 100%; text-align: center; pointer-events: none; z-index: 10; }
+
+        /* Balance Badge */
+        .balance-badge {
+            background: rgba(0, 0, 0, 0.8); border: 2px solid #d4af37; padding: 10px 30px; border-radius: 50px;
+            display: inline-block; font-size: 24px; color: #d4af37; font-weight: bold;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3); text-shadow: 0 0 5px #d4af37;
+        }
+
+        /* Spin Button */
+        .spin-btn {
+            position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
+            background: linear-gradient(45deg, #28a745, #20c997); border: none; padding: 20px 60px;
+            font-size: 28px; font-weight: bold; color: white; border-radius: 10px; cursor: pointer;
+            box-shadow: 0 0 20px rgba(40, 167, 69, 0.5); transition: all 0.2s; pointer-events: auto; text-transform: uppercase;
+        }
+        .spin-btn:hover { transform: translateX(-50%) scale(1.05); box-shadow: 0 0 30px rgba(40, 167, 69, 0.8); }
+        .spin-btn:active { transform: translateX(-50%) scale(0.95); }
+        .spin-btn:disabled { background: #555; cursor: not-allowed; box-shadow: none; }
+
+        /* Status Messages */
+        .status-msg { margin-top: 10px; font-size: 18px; color: #aaa; text-shadow: 1px 1px 2px black; }
+        .win-msg { color: #ffff00; font-size: 32px; font-weight: bold; animation: pop 0.5s ease; }
+
+        @keyframes pop { 0% { transform: scale(0.5); } 100% { transform: scale(1); } }
+
+        /* Connection Status */
+        .connection-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .connected { background-color: #00ff00; box-shadow: 0 0 5px #00ff00; }
+        .disconnected { background-color: #ff0000; box-shadow: 0 0 5px #ff0000; }
+    </style>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel">
+
+    // --- CONSTANTE ---
+    const PLAYER_ID = "jucator_react_1";
+    const WS_URL = "http://localhost:8081/ws-casino";
+
+    // --- PHASER SCENE ---
+    class SlotScene extends Phaser.Scene {
+        constructor() {
+            super({ key: 'SlotScene' });
+            this.slots = [];
+            this.isSpinning = false;
+        }
+
+        create() {
+            this.add.rectangle(400, 300, 800, 600, 0x111111);
+            let graphics = this.add.graphics();
+            graphics.lineStyle(4, 0xd4af37, 1);
+            graphics.strokeRoundedRect(100, 150, 600, 250, 20);
+
+            const style = { fontSize: '90px', fontFamily: 'Arial', fontStyle: 'bold', color: '#ffffff' };
+            this.slots[0] = this.add.text(200, 275, '7', style).setOrigin(0.5);
+            this.slots[1] = this.add.text(400, 275, '7', style).setOrigin(0.5);
+            this.slots[2] = this.add.text(600, 275, '7', style).setOrigin(0.5);
+        }
+
+        startSpinAnimation() {
+            this.isSpinning = true;
+            this.spinTimer = setInterval(() => {
+                this.slots.forEach(slot => slot.setText(Phaser.Math.Between(1, 9)));
+            }, 80);
+        }
+
+        stopSpinAnimation(numbers) {
+            if (!this.isSpinning) return;
+            clearInterval(this.spinTimer);
+            this.isSpinning = false;
+            this.slots[0].setText(numbers[0]);
+            this.slots[1].setText(numbers[1]);
+            this.slots[2].setText(numbers[2]);
+            this.cameras.main.shake(100, 0.005);
+        }
+    }
+
+    // --- REACT COMPONENT ---
+    const App = () => {
+        const [balance, setBalance] = React.useState(0);
+        const [connected, setConnected] = React.useState(false);
+        const [spinning, setSpinning] = React.useState(false);
+        const [winMessage, setWinMessage] = React.useState("Connecting...");
+        const [gameInstance, setGameInstance] = React.useState(null);
+        const [stompClient, setStompClient] = React.useState(null);
+
+        // 1. Initializare Phaser
+        React.useEffect(() => {
+            const config = {
+                type: Phaser.AUTO,
+                width: 800,
+                height: 600,
+                parent: 'phaser-container',
+                transparent: true,
+                scene: SlotScene
+            };
+            const game = new Phaser.Game(config);
+            setGameInstance(game);
+            return () => game.destroy(true);
+        }, []);
+
+        // 2. Initializare WebSocket (CU FIX PENTRU EROARE)
+        React.useEffect(() => {
+            const socket = new SockJS(WS_URL);
+            const client = Stomp.over(socket);
+            client.debug = null;
+
+            // Ref la client pentru cleanup sigur
+            let isMounted = true;
+
+            client.connect({}, () => {
+                if (!isMounted) return; // Daca componenta a disparut intre timp, stop.
+
+                setConnected(true);
+                setWinMessage("Ready to play!");
+
+                client.subscribe('/topic/balance-update', (message) => {
+                    const body = JSON.parse(message.body);
+                    if(body.playerId === PLAYER_ID) {
+                        setBalance(body.balance);
+                    }
+                });
+
+                client.subscribe('/topic/spin-result', (message) => {
+                    const data = JSON.parse(message.body);
+                    handleSpinResult(data);
+                });
+
+                client.send("/app/balance", {}, JSON.stringify({ playerId: PLAYER_ID }));
+
+            }, (error) => {
+                console.error("WS Error:", error);
+                if (isMounted) {
+                    setConnected(false);
+                    setWinMessage("Server Offline");
+                }
+            });
+
+            setStompClient(client);
+
+            // --- FIXUL ESTE AICI JOS ---
+            return () => {
+                isMounted = false;
+                // Verificam daca conexiunea este OPEN (readyState === 1) inainte de disconnect
+                // Altfel StompJS crapa
+                if (client && client.ws && client.ws.readyState === 1) {
+                    client.disconnect();
+                }
+            }
+        }, [gameInstance]);
+
+        const handleSpinResult = (data) => {
+            const scene = gameInstance.scene.getScene('SlotScene');
+            setTimeout(() => {
+                scene.stopSpinAnimation(data.numbers);
+                setBalance(data.finalBalance);
+                setSpinning(false);
+
+                if (data.winAmount > 0) {
+                    setWinMessage(`🎉 WINNER! +${data.winAmount} RON 🎉`);
+                } else {
+                    setWinMessage("Try again...");
+                }
+            }, 500);
+        };
+
+        const handleSpin = () => {
+            if (!connected || spinning) return;
+
+            setSpinning(true);
+            setWinMessage("Spinning...");
+
+            const scene = gameInstance.scene.getScene('SlotScene');
+            if(scene) scene.startSpinAnimation();
+
+            if (stompClient && connected) {
+                stompClient.send("/app/spin", {}, JSON.stringify({
+                    playerId: PLAYER_ID,
+                    betAmount: 10
+                }));
+            }
+        };
+
+        return (
+            <div style={{ position: 'relative', width: '800px', height: '600px' }}>
+                <div className="ui-container">
+                    <div style={{ marginBottom: '10px' }}>
+                        <span className={`connection-dot ${connected ? 'connected' : 'disconnected'}`}></span>
+                        <span style={{ fontSize: '12px', color: '#888' }}>
+                            {connected ? 'LIVE' : 'OFFLINE'}
+                        </span>
+                    </div>
+                    <div className="balance-badge">
+                        {balance} CREDITS
+                    </div>
+                    <div className={`status-msg ${winMessage.includes('WINNER') ? 'win-msg' : ''}`}>
+                        {winMessage}
+                    </div>
+                </div>
+
+                <div id="phaser-container"></div>
+
+                <button
+                    className="spin-btn"
+                    onClick={handleSpin}
+                    disabled={!connected || spinning}
+                >
+                    {spinning ? 'ROLLING...' : 'SPIN (10)'}
+                </button>
+            </div>
+        );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+
+</script>
+</body>
+</html>
