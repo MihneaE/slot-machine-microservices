@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package com.casino.data.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.casino.data.grpc";
+
+service DataService {
+  rpc GetPlayer (PlayerRequest) returns (PlayerResponse);
+  rpc ProcessSpin (PersistenceRequest) returns (PersistenceResponse);
+}
+
+message PlayerRequest {
+  string playerId = 1;
+}
+
+message PlayerResponse {
+  string playerId = 1;
+  int64 balance = 2;
+  bool exists = 3;
+}
+
+message PersistenceRequest {
+  string playerId = 1;
+  int64 betAmount = 2;
+  int64 winAmount = 3;
+  repeated int32 outcome = 4;
+  string spinId = 5;
+}
+
+message PersistenceResponse {
+  int64 newBalance = 1;
+  bool success = 2;
+  string errorMessage = 3;
+}
