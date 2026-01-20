@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package com.casino.rng.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.casino.rng.grpc";
+
+service RngService {
+  rpc GenerateNumbers (RngRequest) returns (RngResponse);
+}
+
+message RngRequest {
+  int32 count = 1;
+}
+
+message RngResponse {
+  repeated int32 numbers = 1;
+}
