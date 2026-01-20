@@ -1,0 +1,13 @@
+server:
+  port: 8081 # Gateway-ul sta pe portul standard web
+
+spring:
+  application:
+    name: gateway-service
+
+grpc:
+  client:
+    # Gateway suna la Game Service (port 9092)
+    game-service:
+      address: static://localhost:9092
+      negotiation-type: plaintext
