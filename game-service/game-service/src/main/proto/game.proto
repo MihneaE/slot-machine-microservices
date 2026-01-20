@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package com.casino.game.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.casino.game.grpc";
+
+service GameService {
+  rpc ExecuteSpin (SpinRequest) returns (SpinResponse);
+
+  rpc GetBalance (BalanceRequest) returns (BalanceResponse);
+}
+
+message SpinRequest {
+  string playerId = 1;
+  int64 betAmount = 2;
+}
+
+message SpinResponse {
+  string spinId = 1;
+  repeated int32 numbers = 2;
+  int64 winAmount = 3;
+  int64 finalBalance = 4;
+}
+
+message BalanceRequest {
+  string playerId = 1;
+}
+
+message BalanceResponse {
+  int64 balance = 1;
+}
