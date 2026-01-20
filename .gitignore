@@ -1,0 +1,10 @@
+target/
+*.class
+.idea/
+*.iml
+.mvn/
+mvnw
+mvnw.cmd
+.DS_Store
+logs/
+postgres_data/
