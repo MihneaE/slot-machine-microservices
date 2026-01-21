@@ -8,6 +8,9 @@ option java_package = "com.casino.data.grpc";
 service DataService {
   rpc GetPlayer (PlayerRequest) returns (PlayerResponse);
   rpc ProcessSpin (PersistenceRequest) returns (PersistenceResponse);
+
+  rpc Register (AuthRequest) returns (AuthResponse);
+  rpc Login (AuthRequest) returns (AuthResponse);
 }
 
 message PlayerRequest {
@@ -32,4 +35,15 @@ message PersistenceResponse {
   int64 newBalance = 1;
   bool success = 2;
   string errorMessage = 3;
+}
+
+message AuthRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message AuthResponse {
+  bool success = 1;
+  string message = 2;
+  string playerId = 3;
 }

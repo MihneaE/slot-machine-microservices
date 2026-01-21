@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CyberSlots - Login</title>
+    <style>
+        body { margin: 0; background-color: #0f0f0f; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+
+        /* Auth Container */
+        .auth-card {
+            background: #1a1a1a;
+            padding: 40px;
+            border-radius: 15px;
+            border: 1px solid #d4af37;
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.15);
+            width: 350px;
+            text-align: center;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        h1 { color: #d4af37; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 2px; font-size: 24px; text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
+
+        input {
+            width: 100%; padding: 12px; margin: 10px 0;
+            background: #333; border: 1px solid #555; color: white;
+            border-radius: 5px; box-sizing: border-box; font-size: 16px; outline: none; transition: 0.3s;
+        }
+        input:focus { border-color: #d4af37; box-shadow: 0 0 8px rgba(212, 175, 55, 0.3); }
+
+        .btn-primary {
+            width: 100%; padding: 12px; margin-top: 20px;
+            background: linear-gradient(45deg, #d4af37, #b8860b);
+            border: none; color: black; font-weight: bold; font-size: 18px;
+            border-radius: 5px; cursor: pointer; transition: 0.3s;
+        }
+        .btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 15px rgba(212, 175, 55, 0.5); }
+
+        .link-text { margin-top: 20px; font-size: 14px; color: #aaa; cursor: pointer; text-decoration: underline; }
+        .link-text:hover { color: #fff; }
+
+        .error-msg { color: #ff4444; margin-bottom: 15px; font-size: 14px; min-height: 20px; }
+        .success-msg { color: #00ff00; margin-bottom: 15px; font-size: 14px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel">
+
+    const GATEWAY_URL = "http://localhost:8081/auth";
+
+    const LoginForm = ({ onSwitch }) => {
+        const [username, setUsername] = React.useState("");
+        const [password, setPassword] = React.useState("");
+        const [error, setError] = React.useState("");
+
+        const handleLogin = async () => {
+            try {
+                const response = await fetch(`${GATEWAY_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    // Save user info locally
+                    localStorage.setItem("casino_user", data.playerId);
+                    // Redirect to the Game Page
+                    window.location.href = "game.html";
+                } else {
+                    setError(data.message || "Login failed");
+                }
+            } catch (err) {
+                setError("Connection error to Gateway");
+            }
+        };
+
+        return (
+            <div className="auth-card">
+                <h1>CyberSlots Login</h1>
+                <div className="error-msg">{error}</div>
+                <input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} />
+                <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
+                <button className="btn-primary" onClick={handleLogin}>ENTER CASINO</button>
+                <div className="link-text" onClick={onSwitch}>New player? Create Account</div>
+            </div>
+        );
+    };
+
+    const RegisterForm = ({ onSwitch }) => {
+        const [username, setUsername] = React.useState("");
+        const [password, setPassword] = React.useState("");
+        const [msg, setMsg] = React.useState({ text: "", type: "" });
+
+        const handleRegister = async () => {
+            try {
+                const response = await fetch(`${GATEWAY_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    setMsg({ text: "Account created! Please login.", type: "success-msg" });
+                    setTimeout(() => onSwitch(), 1500); // Auto switch to login
+                } else {
+                    setMsg({ text: data.message || "Registration failed", type: "error-msg" });
+                }
+            } catch (err) {
+                setMsg({ text: "Connection error", type: "error-msg" });
+            }
+        };
+
+        return (
+            <div className="auth-card">
+                <h1>Register</h1>
+                <div className={msg.type}>{msg.text}</div>
+                <input placeholder="Choose Username" value={username} onChange={e => setUsername(e.target.value)} />
+                <input type="password" placeholder="Choose Password" value={password} onChange={e => setPassword(e.target.value)} />
+                <button className="btn-primary" onClick={handleRegister}>CREATE ACCOUNT</button>
+                <div className="link-text" onClick={onSwitch}>Already have an account? Login</div>
+            </div>
+        );
+    };
+
+    const AuthApp = () => {
+        const [view, setView] = React.useState("login");
+
+        return (
+            <div>
+                {view === "login"
+                    ? <LoginForm onSwitch={() => setView("register")} />
+                    : <RegisterForm onSwitch={() => setView("login")} />
+                }
+            </div>
+        );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<AuthApp />);
+
+</script>
+</body>
+</html>

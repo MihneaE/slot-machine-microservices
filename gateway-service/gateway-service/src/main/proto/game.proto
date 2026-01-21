@@ -9,6 +9,9 @@ service GameService {
   rpc ExecuteSpin (SpinRequest) returns (SpinResponse);
 
   rpc GetBalance (BalanceRequest) returns (BalanceResponse);
+
+  rpc Register (AuthRequest) returns (AuthResponse);
+  rpc Login (AuthRequest) returns (AuthResponse);
 }
 
 message SpinRequest {
@@ -29,4 +32,15 @@ message BalanceRequest {
 
 message BalanceResponse {
   int64 balance = 1;
+}
+
+message AuthRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message AuthResponse {
+  bool success = 1;
+  string message = 2;
+  string playerId = 3;
 }

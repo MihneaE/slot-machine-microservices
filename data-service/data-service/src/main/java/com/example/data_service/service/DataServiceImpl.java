@@ -21,7 +21,8 @@ import java.util.stream.Collectors;
  * <br>
  * <b>Key Functionalities:</b>
  * <ul>
- * <li><b>getPlayer</b>: Retrieves a player's balance or creates a new account with a welcome bonus if one does not exist.</li>
+ * <li><b>Authentication</b>: Handles {@code login} (credential verification) and {@code register} (account creation with initial balance).</li>
+ * <li><b>getPlayer</b>: Retrieves a player's balance or creates a default account if needed.</li>
  * <li><b>processSpin</b>: Handles the financial transaction for a game round atomically. It performs validation,
  * deducts bets, adds winnings, and logs the transaction.</li>
  * <li><b>Idempotency</b>: Prevents double-spending by checking if a specific Spin ID has already been processed.</li>
@@ -44,7 +45,7 @@ public class DataServiceImpl extends DataServiceGrpc.DataServiceImplBase {
     public void getPlayer(PlayerRequest request, StreamObserver<PlayerResponse> responseObserver) {
 
         Player player = playerRepo.findById(request.getPlayerId())
-                .orElseGet(() -> playerRepo.save(new Player(request.getPlayerId(), 10000L))); // 100.00 credite
+                .orElseGet(() -> playerRepo.save(new Player(request.getPlayerId(), request.getPlayerId(), 10000L))); // 100.00 credite
 
         PlayerResponse response = PlayerResponse.newBuilder()
                 .setPlayerId(player.getId())
@@ -104,6 +105,34 @@ public class DataServiceImpl extends DataServiceGrpc.DataServiceImplBase {
                 .setSuccess(true)
                 .setNewBalance(newBalance)
                 .build());
+        responseObserver.onCompleted();
+    }
+
+    @Override
+    public void register(AuthRequest request, StreamObserver<AuthResponse> responseObserver) {
+        if (playerRepo.existsById(request.getUsername())) {
+            responseObserver.onNext(AuthResponse.newBuilder().setSuccess(false).setMessage("Username already exists").build());
+        } else {
+
+            playerRepo.save(new Player(request.getUsername(), request.getPassword(), 1000L));
+            responseObserver.onNext(AuthResponse.newBuilder().setSuccess(true).setMessage("Registered successfully").build());
+        }
+        responseObserver.onCompleted();
+    }
+
+    @Override
+    public void login(AuthRequest request, StreamObserver<AuthResponse> responseObserver) {
+        var playerOpt = playerRepo.findById(request.getUsername());
+
+        if (playerOpt.isPresent() && playerOpt.get().getPassword().equals(request.getPassword())) {
+            responseObserver.onNext(AuthResponse.newBuilder()
+                    .setSuccess(true)
+                    .setPlayerId(playerOpt.get().getId())
+                    .setMessage("Login successful")
+                    .build());
+        } else {
+            responseObserver.onNext(AuthResponse.newBuilder().setSuccess(false).setMessage("Invalid credentials").build());
+        }
         responseObserver.onCompleted();
     }
 }

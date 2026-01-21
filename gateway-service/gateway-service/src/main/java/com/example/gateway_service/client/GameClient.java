@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
  * <br>
  * <b>Main Functions:</b>
  * <ul>
+ * <li><b>Authentication</b>: Forwards {@code login} and {@code register} requests to the Game Service.</li>
  * <li><b>executeSpin</b>: Forwards a spin request to the Game Service and waits for the result (numbers, win amount).</li>
  * <li><b>getBalance</b>: Queries the Game Service (which queries Data Service) for the player's current funds.</li>
  * </ul>
@@ -38,5 +39,21 @@ public class GameClient {
                 .setPlayerId(playerId)
                 .build();
         return gameStub.getBalance(request);
+    }
+
+    public AuthResponse login(String username, String password) {
+        AuthRequest request = AuthRequest.newBuilder()
+                .setUsername(username)
+                .setPassword(password)
+                .build();
+        return gameStub.login(request);
+    }
+
+    public AuthResponse register(String username, String password) {
+        AuthRequest request = AuthRequest.newBuilder()
+                .setUsername(username)
+                .setPassword(password)
+                .build();
+        return gameStub.register(request);
     }
 }

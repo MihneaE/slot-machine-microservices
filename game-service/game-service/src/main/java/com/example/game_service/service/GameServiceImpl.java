@@ -17,20 +17,21 @@ import java.util.UUID;
  * This class acts as the "Orchestrator" of the entire system. It coordinates the flow between
  * the RNG Service (for luck) and the Data Service (for persistence).
  * <br>
+ * <b>Key Responsibilities:</b>
+ * <ul>
+ * <li><b>Auth Orchestration</b>: Acts as a pass-through for {@code login} and {@code register} requests,
+ * delegating them to the Data Client for validation against the database.</li>
+ * <li><b>Game Logic</b>: Executes spins by getting random numbers, calculating payouts, and persisting results.</li>
+ * </ul>
+ * <br>
  * <b>Workflow for `executeSpin`:</b>
  * <ol>
- * <li>Validates the bet amount (must be positive).</li>
+ * <li>Validates the bet amount.</li>
  * <li>Calls <b>RngClient</b> to get 3 random numbers.</li>
- * <li>Calculates winnings based on the game rules:
- * <ul>
- * <li><b>3 Identical Numbers</b>: 10x Multiplier (Jackpot).</li>
- * <li><b>2 Identical Numbers</b>: 2x Multiplier (Small Win).</li>
- * <li><b>No Matches</b>: Loss (0 payout).</li>
- * </ul>
- * </li>
- * <li>Generates a unique <b>Spin ID (UUID)</b> for transaction tracking.</li>
- * <li>Calls <b>DataClient</b> to persist the transaction and update the balance.</li>
- * <li>Returns the final result to the Gateway.</li>
+ * <li>Calculates winnings (10x for 3 matches, 2x for 2 matches).</li>
+ * <li>Generates a unique <b>Spin ID (UUID)</b>.</li>
+ * <li>Calls <b>DataClient</b> to persist the transaction.</li>
+ * <li>Returns the result to the Gateway.</li>
  * </ol>
  * </p>
  */
@@ -52,6 +53,22 @@ public class GameServiceImpl extends GameServiceGrpc.GameServiceImplBase {
         BalanceResponse response = BalanceResponse.newBuilder()
                 .setBalance(dataResponse.getBalance())
                 .build();
+
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+    }
+
+    @Override
+    public void register(AuthRequest request, StreamObserver<AuthResponse> responseObserver) {
+        AuthResponse response = dataClient.register(request);
+
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+    }
+
+    @Override
+    public void login(AuthRequest request, StreamObserver<AuthResponse> responseObserver) {
+        AuthResponse response = dataClient.login(request);
 
         responseObserver.onNext(response);
         responseObserver.onCompleted();
