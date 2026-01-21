@@ -1,16 +1,97 @@
 version: '3.8'
+
 services:
   postgres:
     image: postgres:15
     container_name: slot-postgres
     environment:
-      POSTGRES_DB: slotdb       # <--- ASTA creeaza baza de date automat!
-      POSTGRES_USER: postgres   # Userul
-      POSTGRES_PASSWORD: password # Parola
+      POSTGRES_DB: slotdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
     ports:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - casino-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  data-service:
+    build: ./data-service/data-service
+    container_name: data-service
+    ports:
+      - "9090:9090"
+    environment:
+      - SERVER_PORT=8080
+      - GRPC_SERVER_PORT=9090
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/slotdb
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - casino-net
+
+  rng-service:
+    build: ./rng-service/rng-service
+    container_name: rng-service
+    ports:
+      - "9091:9091"
+    environment:
+      - SERVER_PORT=8080
+      - GRPC_SERVER_PORT=9091
+    networks:
+      - casino-net
+
+  game-service:
+    build: ./game-service/game-service
+    container_name: game-service
+    ports:
+      - "9092:9092"
+    environment:
+      - SERVER_PORT=8080
+      - GRPC_SERVER_PORT=9092
+      - GRPC_CLIENT_DATA_SERVICE_ADDRESS=static://data-service:9090
+      - GRPC_CLIENT_DATA_SERVICE_NEGOTIATION_TYPE=PLAINTEXT
+      - GRPC_CLIENT_RNG_SERVICE_ADDRESS=static://rng-service:9091
+      - GRPC_CLIENT_RNG_SERVICE_NEGOTIATION_TYPE=PLAINTEXT
+    depends_on:
+      - data-service
+      - rng-service
+    networks:
+      - casino-net
+
+  gateway-service:
+    build: ./gateway-service/gateway-service
+    container_name: gateway-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SERVER_PORT=8081
+      - GRPC_CLIENT_GAME_SERVICE_ADDRESS=static://game-service:9092
+      - GRPC_CLIENT_GAME_SERVICE_NEGOTIATION_TYPE=PLAINTEXT
+    depends_on:
+      - game-service
+    networks:
+      - casino-net
+
+  frontend:
+    build: ./frontend
+    container_name: casino-frontend
+    ports:
+      - "80:80"
+    networks:
+      - casino-net
+
+networks:
+  casino-net:
+    driver: bridge
 
 volumes:
   postgres_data:

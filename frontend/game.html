@@ -8,17 +8,14 @@
         body { margin: 0; background-color: #0f0f0f; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; overflow: hidden; }
         #root { display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; }
 
-        /* UI Container */
         .ui-container { position: absolute; top: 20px; width: 100%; text-align: center; pointer-events: none; z-index: 10; }
 
-        /* Balance Badge */
         .balance-badge {
             background: rgba(0, 0, 0, 0.8); border: 2px solid #d4af37; padding: 10px 30px; border-radius: 50px;
             display: inline-block; font-size: 24px; color: #d4af37; font-weight: bold;
             box-shadow: 0 0 15px rgba(212, 175, 55, 0.3); text-shadow: 0 0 5px #d4af37;
         }
 
-        /* Spin Button */
         .spin-btn {
             position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
             background: linear-gradient(45deg, #28a745, #20c997); border: none; padding: 20px 60px;
@@ -29,16 +26,33 @@
         .spin-btn:active { transform: translateX(-50%) scale(0.95); }
         .spin-btn:disabled { background: #555; cursor: not-allowed; box-shadow: none; }
 
-        /* Status Messages */
         .status-msg { margin-top: 10px; font-size: 18px; color: #aaa; text-shadow: 1px 1px 2px black; }
         .win-msg { color: #ffff00; font-size: 32px; font-weight: bold; animation: pop 0.5s ease; }
 
         @keyframes pop { 0% { transform: scale(0.5); } 100% { transform: scale(1); } }
 
-        /* Connection Status */
         .connection-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
         .connected { background-color: #00ff00; box-shadow: 0 0 5px #00ff00; }
         .disconnected { background-color: #ff0000; box-shadow: 0 0 5px #ff0000; }
+
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #dc3545;
+            color: white;
+            border: 1px solid #b02a37;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 100; /* Sa fie peste UI container */
+            font-family: 'Segoe UI', sans-serif;
+            transition: background 0.2s;
+        }
+        .logout-btn:hover {
+            background-color: #bb2d3b;
+        }
     </style>
 
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -54,11 +68,14 @@
 
 <script type="text/babel">
 
-    // --- CONSTANTE ---
-    const PLAYER_ID = "jucator_react_1";
+    const storedPlayerId = localStorage.getItem("casino_user");
+    if (!storedPlayerId) {
+        window.location.href = "auth.html";
+    }
+    const PLAYER_ID = storedPlayerId;
+
     const WS_URL = "http://localhost:8081/ws-casino";
 
-    // --- PHASER SCENE ---
     class SlotScene extends Phaser.Scene {
         constructor() {
             super({ key: 'SlotScene' });
@@ -96,7 +113,6 @@
         }
     }
 
-    // --- REACT COMPONENT ---
     const App = () => {
         const [balance, setBalance] = React.useState(0);
         const [connected, setConnected] = React.useState(false);
@@ -105,7 +121,6 @@
         const [gameInstance, setGameInstance] = React.useState(null);
         const [stompClient, setStompClient] = React.useState(null);
 
-        // 1. Initializare Phaser
         React.useEffect(() => {
             const config = {
                 type: Phaser.AUTO,
@@ -120,20 +135,18 @@
             return () => game.destroy(true);
         }, []);
 
-        // 2. Initializare WebSocket (CU FIX PENTRU EROARE)
         React.useEffect(() => {
             const socket = new SockJS(WS_URL);
             const client = Stomp.over(socket);
             client.debug = null;
 
-            // Ref la client pentru cleanup sigur
             let isMounted = true;
 
             client.connect({}, () => {
-                if (!isMounted) return; // Daca componenta a disparut intre timp, stop.
+                if (!isMounted) return;
 
                 setConnected(true);
-                setWinMessage("Ready to play!");
+                setWinMessage(`Welcome, ${PLAYER_ID}!`);
 
                 client.subscribe('/topic/balance-update', (message) => {
                     const body = JSON.parse(message.body);
@@ -159,11 +172,8 @@
 
             setStompClient(client);
 
-            // --- FIXUL ESTE AICI JOS ---
             return () => {
                 isMounted = false;
-                // Verificam daca conexiunea este OPEN (readyState === 1) inainte de disconnect
-                // Altfel StompJS crapa
                 if (client && client.ws && client.ws.readyState === 1) {
                     client.disconnect();
                 }
@@ -202,8 +212,27 @@
             }
         };
 
+        const handleLogout = () => {
+
+            if (stompClient && connected) {
+                stompClient.disconnect(() => {
+                    console.log("Disconnected via logout");
+                });
+            }
+
+            localStorage.removeItem("casino_user");
+
+            window.location.href = "auth.html";
+        };
+
         return (
             <div style={{ position: 'relative', width: '800px', height: '600px' }}>
+
+
+                <button className="logout-btn" onClick={handleLogout}>
+                    LOGOUT
+                </button>
+
                 <div className="ui-container">
                     <div style={{ marginBottom: '10px' }}>
                         <span className={`connection-dot ${connected ? 'connected' : 'disconnected'}`}></span>
