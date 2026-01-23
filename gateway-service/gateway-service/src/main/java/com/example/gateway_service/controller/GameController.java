@@ -11,16 +11,19 @@ import java.util.Map;
 /**
  * WebSocket Controller handling real-time game interactions.
  * <p>
- * Unlike a traditional REST Controller, this class handles messages sent via the STOMP protocol.
- * It serves as the entry point for frontend actions (like spinning the wheel) and orchestrates the response flow.
- * <br>
+ * Manages the bi-directional communication channel using the <b>STOMP protocol</b>.
+ * This allows for low-latency interactions crucial for the gaming experience.
+ * </p>
+ *
+ *
+ *
  * <b>Workflow:</b>
  * <ol>
- * <li>Client sends a message to <code>/app/spin</code>.</li>
- * <li>Controller receives the payload, parses it, and calls the <b>GameClient</b> (gRPC).</li>
- * <li>The result is automatically broadcast to subscribers of <code>/topic/spin-result</code> via the <code>@SendTo</code> annotation.</li>
+ * <li><b>Input:</b> Client sends a JSON payload to <code>/app/spin</code>.</li>
+ * <li><b>Processing:</b> Controller parses the payload and invokes the gRPC client.</li>
+ * <li><b>Output:</b> The gRPC response (including spin result, balance, and <b>winning lines</b>)
+ * is broadcast to <code>/topic/spin-result</code>.</li>
  * </ol>
- * </p>
  */
 
 @Controller
@@ -49,7 +52,8 @@ public class GameController {
                 "spinId", response.getSpinId(),
                 "numbers", response.getNumbersList(),
                 "winAmount", response.getWinAmount(),
-                "finalBalance", response.getFinalBalance()
+                "finalBalance", response.getFinalBalance(),
+                "winningLines", response.getWinningLinesList()
         );
     }
 

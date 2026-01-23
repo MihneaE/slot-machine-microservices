@@ -8,17 +8,17 @@ import java.util.Map;
 /**
  * REST Controller for handling User Authentication.
  * <p>
- * This controller serves as the entry point for HTTP authentication requests from the frontend.
- * Unlike the WebSocket controller (used for gameplay), this uses standard REST endpoints for
- * operations that happen before the game starts.
- * <br>
+ * Serves as the HTTP entry point for user sessions. Unlike the gameplay actions which require
+ * a persistent connection, authentication is stateless and uses standard REST POST methods.
+ * </p>
+ *
+ *
+ *
  * <b>Endpoints:</b>
  * <ul>
- * <li><b>POST /auth/login</b>: Authenticates a user and returns their Player ID.</li>
- * <li><b>POST /auth/register</b>: Creates a new user account with an initial balance.</li>
+ * <li><b>POST /auth/login</b>: Validates credentials and returns a Player ID.</li>
+ * <li><b>POST /auth/register</b>: Creates a new account with a default balance.</li>
  * </ul>
- * All requests are forwarded to the {@link GameClient} via gRPC.
- * </p>
  */
 
 @RestController

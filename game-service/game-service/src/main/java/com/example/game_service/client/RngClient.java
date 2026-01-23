@@ -10,15 +10,19 @@ import java.util.List;
 /**
  * gRPC Client Wrapper for the RNG (Random Number Generator) Microservice.
  * <p>
- * This component acts as a bridge between the Game Service and the remote RNG Service.
- * It abstracts the complexity of the gRPC network calls using a synchronous (blocking) stub.
- * <br>
+ * This component acts as a synchronous bridge to the external RNG Service.
+ * It uses a blocking gRPC stub, meaning the Game Service thread will wait
+ * until the RNG service responds.
+ * </p>
+ *
+ *
+ *
  * <b>Main Responsibility:</b>
  * <ul>
- * <li><b>getNumbers(int count)</b>: Sends a request to the RNG service to generate a specific list
- * of random integers (e.g., [7, 2, 9]). These numbers determine the outcome of the slot machine spin.</li>
+ * <li><b>getNumbers(int count)</b>: Requests a specific quantity of random integers
+ * (e.g., 15 numbers for a 5x3 grid). These numbers are the raw data used to determine
+ * the visual outcome of the spin.</li>
  * </ul>
- * </p>
  */
 
 @Service

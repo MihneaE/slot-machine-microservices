@@ -44,7 +44,7 @@ public class RngServiceImpl extends RngServiceGrpc.RngServiceImplBase {
         } else {
 
             for (int i = 0; i < count; i++) {
-                numbers.add(random.nextInt(10));
+                numbers.add(random.nextInt(6) + 1);
             }
             System.out.println("RNG: Generating RANDOM outcome: " + numbers);
         }

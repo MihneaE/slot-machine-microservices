@@ -17,17 +17,19 @@ import java.util.stream.Collectors;
  * gRPC Server implementation for the Data Service.
  * <p>
  * This class extends the generated {@code DataServiceImplBase} and encapsulates the core business logic
- * for database interactions using Spring Data JPA.
- * <br>
+ * for database interactions using Spring Data JPA. It serves as the system of record, ensuring
+ * <b>ACID compliance</b> for all financial operations.
+ * </p>
+ * *
+ * * <br>
  * <b>Key Functionalities:</b>
  * <ul>
  * <li><b>Authentication</b>: Handles {@code login} (credential verification) and {@code register} (account creation with initial balance).</li>
  * <li><b>getPlayer</b>: Retrieves a player's balance or creates a default account if needed.</li>
- * <li><b>processSpin</b>: Handles the financial transaction for a game round atomically. It performs validation,
+ * <li><b>processSpin</b>: Handles the financial transaction for a game round atomically via {@code @Transactional}. It performs validation,
  * deducts bets, adds winnings, and logs the transaction.</li>
  * <li><b>Idempotency</b>: Prevents double-spending by checking if a specific Spin ID has already been processed.</li>
  * </ul>
- * </p>
  */
 
 @GrpcService

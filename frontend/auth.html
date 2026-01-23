@@ -6,7 +6,6 @@
     <style>
         body { margin: 0; background-color: #0f0f0f; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
 
-        /* Auth Container */
         .auth-card {
             background: #1a1a1a;
             padding: 40px;
@@ -71,9 +70,9 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // Save user info locally
+
                     localStorage.setItem("casino_user", data.playerId);
-                    // Redirect to the Game Page
+
                     window.location.href = "game.html";
                 } else {
                     setError(data.message || "Login failed");
@@ -111,7 +110,7 @@
 
                 if (data.success) {
                     setMsg({ text: "Account created! Please login.", type: "success-msg" });
-                    setTimeout(() => onSwitch(), 1500); // Auto switch to login
+                    setTimeout(() => onSwitch(), 1500);
                 } else {
                     setMsg({ text: data.message || "Registration failed", type: "error-msg" });
                 }

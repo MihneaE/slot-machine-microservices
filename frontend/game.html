@@ -8,7 +8,13 @@
         body { margin: 0; background-color: #0f0f0f; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; overflow: hidden; }
         #root { display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; }
 
-        .ui-container { position: absolute; top: 20px; width: 100%; text-align: center; pointer-events: none; z-index: 10; }
+       .ui-container {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            pointer-events: none;
+            z-index: 10;
+        }
 
         .balance-badge {
             background: rgba(0, 0, 0, 0.8); border: 2px solid #d4af37; padding: 10px 30px; border-radius: 50px;
@@ -17,11 +23,24 @@
         }
 
         .spin-btn {
-            position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
-            background: linear-gradient(45deg, #28a745, #20c997); border: none; padding: 20px 60px;
-            font-size: 28px; font-weight: bold; color: white; border-radius: 10px; cursor: pointer;
-            box-shadow: 0 0 20px rgba(40, 167, 69, 0.5); transition: all 0.2s; pointer-events: auto; text-transform: uppercase;
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border: none;
+            padding: 15px 50px; /* Un pic mai mic */
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(40, 167, 69, 0.5);
+            transition: all 0.2s;
+            pointer-events: auto;
+            text-transform: uppercase;
         }
+
         .spin-btn:hover { transform: translateX(-50%) scale(1.05); box-shadow: 0 0 30px rgba(40, 167, 69, 0.8); }
         .spin-btn:active { transform: translateX(-50%) scale(0.95); }
         .spin-btn:disabled { background: #555; cursor: not-allowed; box-shadow: none; }
@@ -53,6 +72,82 @@
         .logout-btn:hover {
             background-color: #bb2d3b;
         }
+
+        .bet-container {
+            position: absolute;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 20;
+            background: rgba(0,0,0,0.6);
+            padding: 10px;
+            border-radius: 15px;
+            border: 1px solid #333;
+        }
+
+        .bet-btn {
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .bet-btn:hover { background: #444; }
+
+        .bet-btn.active {
+            background: #d4af37;
+            color: black;
+            border-color: #fff;
+            box-shadow: 0 0 10px #d4af37;
+            transform: scale(1.1);
+        }
+
+        .info-btn {
+            position: absolute; top: 20px; left: 20px;
+            width: 40px; height: 40px; border-radius: 50%;
+            background: #333; border: 2px solid #aaa; color: #fff;
+            font-size: 20px; font-weight: bold; font-family: serif;
+            cursor: pointer; z-index: 100; transition: 0.2s;
+        }
+        .info-btn:hover { background: #555; border-color: #fff; transform: scale(1.1); }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); z-index: 2000;
+            display: flex; justify-content: center; align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: linear-gradient(180deg, #222, #111);
+            border: 2px solid #d4af37; border-radius: 15px;
+            padding: 20px; width: 500px; max-width: 90%;
+            box-shadow: 0 0 50px rgba(212, 175, 55, 0.2);
+            text-align: center; color: white;
+            position: relative;
+        }
+        .modal-title { font-size: 28px; color: #d4af37; margin-bottom: 20px; text-transform: uppercase; border-bottom: 1px solid #444; padding-bottom: 10px; }
+
+        .paytable-row {
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(255, 255, 255, 0.05);
+            margin-bottom: 8px; padding: 5px 15px; border-radius: 8px;
+        }
+        .paytable-left { display: flex; align-items: center; gap: 15px; }
+        .paytable-img { width: 40px; height: 40px; object-fit: contain; }
+        .paytable-payouts { font-family: monospace; font-size: 16px; color: #eee; }
+        .highlight-win { color: #ffff00; font-weight: bold; }
+
+        .close-modal-btn {
+            margin-top: 20px; background: #dc3545; border: none; color: white;
+            padding: 10px 30px; font-weight: bold; border-radius: 5px; cursor: pointer;
+        }
+        .close-modal-btn:hover { background: #bb2d3b; }
     </style>
 
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -81,35 +176,124 @@
             super({ key: 'SlotScene' });
             this.slots = [];
             this.isSpinning = false;
+
+            this.paylineDefinitions = [
+                [5, 6, 7, 8, 9],
+                [0, 1, 2, 3, 4],
+                [10, 11, 12, 13, 14],
+                [0, 6, 12, 8, 4],
+                [10, 6, 2, 8, 14]
+            ];
+        }
+
+        preload() {
+            for (let i = 1; i <= 6; i++) {
+                this.load.image(i.toString(), `assets/${i}.png`);
+            }
+
+            this.load.audio('spin', 'assets/spin.mp3');
+            this.load.audio('win', 'assets/win.mp3');
         }
 
         create() {
             this.add.rectangle(400, 300, 800, 600, 0x111111);
+
             let graphics = this.add.graphics();
             graphics.lineStyle(4, 0xd4af37, 1);
-            graphics.strokeRoundedRect(100, 150, 600, 250, 20);
+            graphics.strokeRoundedRect(50, 100, 700, 360, 20);
 
-            const style = { fontSize: '90px', fontFamily: 'Arial', fontStyle: 'bold', color: '#ffffff' };
-            this.slots[0] = this.add.text(200, 275, '7', style).setOrigin(0.5);
-            this.slots[1] = this.add.text(400, 275, '7', style).setOrigin(0.5);
-            this.slots[2] = this.add.text(600, 275, '7', style).setOrigin(0.5);
+            this.paylineGraphics = this.add.graphics();
+
+            this.paylineGraphics.setDepth(100);
+
+            const startX = 130;
+            const startY = 160;
+            const paddingX = 135;
+            const paddingY = 110;
+
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 5; col++) {
+                    let slot = this.add.sprite(startX + (col * paddingX), startY + (row * paddingY), '1');
+                    slot.setDisplaySize(90, 90);
+                    // --- FIX 2: Set slots depth lower than lines ---
+                    slot.setDepth(1);
+                    this.slots.push(slot);
+                }
+            }
+
+            this.spinSound = this.sound.add('spin', { loop: true, volume: 0.5 });
+            this.winSound = this.sound.add('win', { loop: false, volume: 0.8 });
         }
 
         startSpinAnimation() {
             this.isSpinning = true;
+            this.paylineGraphics.clear();
+            this.slots.forEach(s => s.setAlpha(1));
+
+            if (this.winSound.isPlaying)
+                this.winSound.stop();
+
+            this.spinSound.play();
+
             this.spinTimer = setInterval(() => {
-                this.slots.forEach(slot => slot.setText(Phaser.Math.Between(1, 9)));
+                this.slots.forEach(slot => {
+                    const randomId = Phaser.Math.Between(1, 6).toString();
+                    slot.setTexture(randomId);
+                    slot.setDisplaySize(90, 90);
+                });
             }, 80);
         }
 
-        stopSpinAnimation(numbers) {
+        stopSpinAnimation(numbers, winningLines) {
             if (!this.isSpinning) return;
             clearInterval(this.spinTimer);
             this.isSpinning = false;
-            this.slots[0].setText(numbers[0]);
-            this.slots[1].setText(numbers[1]);
-            this.slots[2].setText(numbers[2]);
+
+            this.spinSound.stop();
+
+            console.log("Spin over. Winning Lines received:", winningLines);
+
+            for (let i = 0; i < this.slots.length; i++) {
+                let symbolId = numbers[i] ? numbers[i].toString() : Phaser.Math.Between(1, 6).toString();
+                this.slots[i].setTexture(symbolId);
+                this.slots[i].setDisplaySize(90, 90);
+            }
             this.cameras.main.shake(100, 0.005);
+
+            if (winningLines && winningLines.length > 0) {
+                this.winSound.play();
+                this.drawWinLines(winningLines);
+            }
+        }
+
+        drawWinLines(lineIndices) {
+            console.log("Drawing lines for indices:", lineIndices);
+
+            this.slots.forEach(s => s.setAlpha(0.3));
+
+            this.paylineGraphics.lineStyle(10, 0xff0000, 1);
+
+            lineIndices.forEach(lineIndex => {
+                const positions = this.paylineDefinitions[lineIndex];
+
+                positions.forEach(posIndex => {
+                    if(this.slots[posIndex]) {
+                        this.slots[posIndex].setAlpha(1);
+                    }
+                });
+
+                this.paylineGraphics.beginPath();
+
+                let firstSlot = this.slots[positions[0]];
+                this.paylineGraphics.moveTo(firstSlot.x, firstSlot.y);
+
+                for(let i=1; i<positions.length; i++) {
+                    let nextSlot = this.slots[positions[i]];
+                    this.paylineGraphics.lineTo(nextSlot.x, nextSlot.y);
+                }
+
+                this.paylineGraphics.strokePath();
+            });
         }
     }
 
@@ -121,11 +305,16 @@
         const [gameInstance, setGameInstance] = React.useState(null);
         const [stompClient, setStompClient] = React.useState(null);
 
+        const [currentBet, setCurrentBet] = React.useState(10);
+        const betOptions = [10, 20, 30, 40, 50];
+
+        const [showPaytable, setShowPaytable] = React.useState(false);
+
         React.useEffect(() => {
             const config = {
                 type: Phaser.AUTO,
                 width: 800,
-                height: 600,
+                height: 700,
                 parent: 'phaser-container',
                 transparent: true,
                 scene: SlotScene
@@ -183,12 +372,14 @@
         const handleSpinResult = (data) => {
             const scene = gameInstance.scene.getScene('SlotScene');
             setTimeout(() => {
-                scene.stopSpinAnimation(data.numbers);
+
+                scene.stopSpinAnimation(data.numbers, data.winningLines);
+
                 setBalance(data.finalBalance);
                 setSpinning(false);
 
                 if (data.winAmount > 0) {
-                    setWinMessage(`🎉 WINNER! +${data.winAmount} RON 🎉`);
+                    setWinMessage(`🎉 WINNER! +${data.winAmount} CREDITS 🎉`);
                 } else {
                     setWinMessage("Try again...");
                 }
@@ -196,10 +387,16 @@
         };
 
         const handleSpin = () => {
+
             if (!connected || spinning) return;
 
+            if (balance < currentBet) {
+                setWinMessage("Fonduri insuficiente!");
+                return;
+            }
+
             setSpinning(true);
-            setWinMessage("Spinning...");
+            setWinMessage("Rolling...");
 
             const scene = gameInstance.scene.getScene('SlotScene');
             if(scene) scene.startSpinAnimation();
@@ -207,7 +404,7 @@
             if (stompClient && connected) {
                 stompClient.send("/app/spin", {}, JSON.stringify({
                     playerId: PLAYER_ID,
-                    betAmount: 10
+                    betAmount: currentBet
                 }));
             }
         };
@@ -226,12 +423,14 @@
         };
 
         return (
-            <div style={{ position: 'relative', width: '800px', height: '600px' }}>
+            <div style={{ position: 'relative', width: '800px', height: '700px' }}>
 
 
                 <button className="logout-btn" onClick={handleLogout}>
                     LOGOUT
                 </button>
+
+                <button className="info-btn" onClick={() => setShowPaytable(true)}>i</button>
 
                 <div className="ui-container">
                     <div style={{ marginBottom: '10px' }}>
@@ -250,13 +449,85 @@
 
                 <div id="phaser-container"></div>
 
+                <div className="bet-container">
+                    <span style={{color: '#aaa', alignSelf: 'center', marginRight: '5px', fontSize: '14px'}}>BET:</span>
+                    {betOptions.map(amount => (
+                        <button
+                            key={amount}
+                            className={`bet-btn ${currentBet === amount ? 'active' : ''}`}
+                            onClick={() => !spinning && setCurrentBet(amount)}
+                            disabled={spinning}
+                        >
+                            {amount}
+                        </button>
+                    ))}
+                </div>
+
                 <button
                     className="spin-btn"
                     onClick={handleSpin}
                     disabled={!connected || spinning}
                 >
-                    {spinning ? 'ROLLING...' : 'SPIN (10)'}
+                    {spinning ? 'ROLLING...' : 'SPIN'}
                 </button>
+
+                {showPaytable && (
+                    <div className="modal-overlay" onClick={() => setShowPaytable(false)}>
+                        <div className="modal-content" onClick={e => e.stopPropagation()}>
+                            <div className="modal-title">PAYTABLE (per Line)</div>
+
+                            <div className="paytable-row">
+                                <div className="paytable-left">
+                                    <img src="assets/5.png" className="paytable-img" alt="7" />
+                                    <span>Red Seven</span>
+                                </div>
+                                <div className="paytable-payouts">
+                                    5x:<span className="highlight-win">1000</span> | 4x:200 | 3x:20
+                                </div>
+                            </div>
+
+                            <div className="paytable-row">
+                                <div className="paytable-left">
+                                    <img src="assets/4.png" className="paytable-img" alt="Melon" />
+                                    <span>Watermelon</span>
+                                </div>
+                                <div className="paytable-payouts">
+                                    5x:<span className="highlight-win">100</span> | 4x:40 | 3x:10
+                                </div>
+                            </div>
+
+                             <div className="paytable-row">
+                                <div className="paytable-left">
+                                    <div style={{display:'flex'}}>
+                                        <img src="assets/6.png" className="paytable-img" style={{width:'30px'}} />
+                                        <img src="assets/3.png" className="paytable-img" style={{width:'30px'}} />
+                                        <img src="assets/2.png" className="paytable-img" style={{width:'30px'}} />
+                                    </div>
+                                    <span style={{marginLeft:'5px'}}>Fruits</span>
+                                </div>
+                                <div className="paytable-payouts">
+                                    5x:<span className="highlight-win">40</span> | 4x:10 | 3x:4
+                                </div>
+                            </div>
+
+                             <div className="paytable-row">
+                                <div className="paytable-left">
+                                    <img src="assets/1.png" className="paytable-img" alt="Cherry" />
+                                    <span>Cherry</span>
+                                </div>
+                                <div className="paytable-payouts">
+                                    5x:40 | 3x:4 | <span className="highlight-win">2x:1</span>
+                                </div>
+                            </div>
+
+                            <div style={{ marginTop: '20px', fontSize: '14px', color: '#888' }}>
+                                Game Rules: 5 Paylines (Horizontal + Diagonals).
+                            </div>
+
+                            <button className="close-modal-btn" onClick={() => setShowPaytable(false)}>CLOSE</button>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     };

@@ -8,16 +8,19 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * JPA Entity representing a user's financial and authentication profile.
+ * JPA Entity representing the immutable audit record of a single game round.
  * <p>
- * This class maps to the <b>"players"</b> table and acts as the single source of truth for
- * a user's account status. It contains:
- * <ul>
- * <li><b>id</b>: The unique identifier for the player (acts as the <b>username</b>).</li>
- * <li><b>password</b>: The user's credentials (stored as plain text for this demo, usually hashed).</li>
- * <li><b>balance</b>: The current wallet balance, updated transactionally during gameplay.</li>
- * </ul>
+ * Maps to the <b>"spins"</b> table. This entity is created once per transaction
+ * and is never updated, serving as a permanent history of the game outcome.
  * </p>
+ * <ul>
+ * <li><b>id</b>: UUID provided by the Game Service (used as an idempotency key).</li>
+ * <li><b>playerId</b>: Foreign key reference to the Player.</li>
+ * <li><b>betAmount</b>: Wagered amount.</li>
+ * <li><b>winAmount</b>: Payout amount.</li>
+ * <li><b>outcome</b>: Serialized representation of the slot result (e.g., "[7, 7, 7]").</li>
+ * <li><b>timestamp</b>: Creation time of the record.</li>
+ * </ul>
  */
 
 @Entity
@@ -38,9 +41,27 @@ public class Player {
         this.balance = balance;
     }
 
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
-    public String getId() { return id; }
-    public long getBalance() { return balance; }
-    public void setBalance(long balance) { this.balance = balance; }
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setBalance(long balance) {
+        this.balance = balance;
+    }
+
+    public long getBalance() {
+        return balance;
+    }
+
+    public String getPassword() {
+        return password;
+    }
 }

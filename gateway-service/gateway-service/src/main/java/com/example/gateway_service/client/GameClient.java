@@ -7,17 +7,18 @@ import org.springframework.stereotype.Service;
 /**
  * gRPC Client Wrapper for the Game Microservice.
  * <p>
- * This component acts as a proxy between the API Gateway and the internal Game Service.
- * Since the Gateway exposes WebSockets (or REST) to the frontend, but the internal services talk gRPC,
- * this client is responsible for translating the external requests into gRPC calls.
- * <br>
- * <b>Main Functions:</b>
- * <ul>
- * <li><b>Authentication</b>: Forwards {@code login} and {@code register} requests to the Game Service.</li>
- * <li><b>executeSpin</b>: Forwards a spin request to the Game Service and waits for the result (numbers, win amount).</li>
- * <li><b>getBalance</b>: Queries the Game Service (which queries Data Service) for the player's current funds.</li>
- * </ul>
+ * This component implements the <b>Gateway Pattern</b>. It acts as a proxy, translating external
+ * HTTP/WebSocket requests (JSON) into internal gRPC calls (Protobuf).
  * </p>
+ *
+ *
+ *
+ * <b>Core Responsibilities:</b>
+ * <ul>
+ * <li><b>Protocol Translation:</b> Converts high-level user actions into binary gRPC messages.</li>
+ * <li><b>Service Discovery:</b> Locates the "game-service" instance via the configured discovery mechanism (e.g., K8s DNS or static config).</li>
+ * <li><b>Synchronous Execution:</b> Uses a blocking stub to ensure the frontend gets an immediate confirmation of actions like spins or logins.</li>
+ * </ul>
  */
 
 @Service

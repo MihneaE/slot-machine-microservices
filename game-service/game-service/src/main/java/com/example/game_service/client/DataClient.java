@@ -18,19 +18,22 @@ import java.util.List;
 /**
  * gRPC Client Wrapper for the Data Microservice.
  * <p>
- * This class manages all persistence-related communication. The Game Service never accesses
- * the database directly; instead, it delegates all read/write operations to the Data Service
- * through this client.
- * <br>
- * <b>Key Functions:</b>
- * <ul>
- * <li><b>Authentication Mapping</b>: Converts {@code AuthRequest} objects from the Game protocol (received from Gateway)
- * to the Data protocol (sent to Database) for {@code login} and {@code register}.</li>
- * <li><b>getPlayer</b>: Retrieves player details and current wallet balance.</li>
- * <li><b>saveSpin</b>: Sends a transactional request to persist the spin result, update the player's balance
- * (deduct bet, add win), and log the game history.</li>
- * </ul>
+ * This class serves as the <b>Data Access Layer</b> for the Game Service. It abstracts the low-level
+ * gRPC calls to the {@code data-service}, ensuring that the core game logic remains decoupled from
+ * database implementation details.
  * </p>
+ *
+ *
+ *
+ * <b>Key Responsibilities:</b>
+ * <ul>
+ * <li><b>Protocol Adaptation (Adapter Pattern)</b>: Manually maps objects between the Game Protocol
+ * (used by the Gateway) and the Data Protocol (used by the Database Service), specifically for
+ * {@code AuthRequest} and {@code AuthResponse}.</li>
+ * <li><b>State Retrieval</b>: Fetches player balances via {@code getPlayer}.</li>
+ * <li><b>Transactional Persistence</b>: Delegates the atomic "bet + win + history" transaction to
+ * the Data Service via {@code saveSpin}.</li>
+ * </ul>
  */
 
 @Service

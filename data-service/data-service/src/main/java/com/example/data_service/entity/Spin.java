@@ -48,5 +48,51 @@ public class Spin {
         this.timestamp = timestamp;
     }
 
-    public String getId() { return id; }
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public void setBetAmount(long betAmount) {
+        this.betAmount = betAmount;
+    }
+
+    public void setOutcome(String outcome) {
+        this.outcome = outcome;
+    }
+
+    public void setPlayerId(String playerId) {
+        this.playerId = playerId;
+    }
+
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public void setWinAmount(long winAmount) {
+        this.winAmount = winAmount;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public long getBetAmount() {
+        return betAmount;
+    }
+
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
+
+    public long getWinAmount() {
+        return winAmount;
+    }
+
+    public String getOutcome() {
+        return outcome;
+    }
+
+    public String getPlayerId() {
+        return playerId;
+    }
 }

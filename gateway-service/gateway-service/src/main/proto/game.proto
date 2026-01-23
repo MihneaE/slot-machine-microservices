@@ -24,6 +24,7 @@ message SpinResponse {
   repeated int32 numbers = 2;
   int64 winAmount = 3;
   int64 finalBalance = 4;
+  repeated int32 winningLines = 5;
 }
 
 message BalanceRequest {

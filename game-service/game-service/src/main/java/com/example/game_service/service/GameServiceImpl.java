@@ -8,6 +8,8 @@ import com.example.game_service.client.RngClient;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,25 +17,27 @@ import java.util.UUID;
  * Core Business Logic implementation for the Game Microservice.
  * <p>
  * This class acts as the "Orchestrator" of the entire system. It coordinates the flow between
- * the RNG Service (for luck) and the Data Service (for persistence).
- * <br>
+ * the RNG Service (for randomness) and the Data Service (for persistence/ACID transactions).
+ * </p>
+ *
+ *
+ *
  * <b>Key Responsibilities:</b>
  * <ul>
- * <li><b>Auth Orchestration</b>: Acts as a pass-through for {@code login} and {@code register} requests,
- * delegating them to the Data Client for validation against the database.</li>
- * <li><b>Game Logic</b>: Executes spins by getting random numbers, calculating payouts, and persisting results.</li>
+ * <li><b>Auth Orchestration</b>: Pass-through for login/register requests to the Data Service.</li>
+ * <li><b>Game Logic (5x3 Slot)</b>: Executes spins by fetching 15 random numbers, mapping them to a grid,
+ * evaluating 5 distinct paylines, and calculating complex payouts based on symbol multipliers.</li>
  * </ul>
  * <br>
  * <b>Workflow for `executeSpin`:</b>
  * <ol>
- * <li>Validates the bet amount.</li>
- * <li>Calls <b>RngClient</b> to get 3 random numbers.</li>
- * <li>Calculates winnings (10x for 3 matches, 2x for 2 matches).</li>
- * <li>Generates a unique <b>Spin ID (UUID)</b>.</li>
- * <li>Calls <b>DataClient</b> to persist the transaction.</li>
- * <li>Returns the result to the Gateway.</li>
+ * <li>Validates the bet amount (must be positive).</li>
+ * <li>Calls <b>RngClient</b> to get 15 random numbers (filling a 5-column x 3-row grid).</li>
+ * <li>Evaluates winning lines using {@code calculatePayout5x3}.</li>
+ * <li>Generates a unique <b>Spin ID (UUID)</b> for idempotency.</li>
+ * <li>Calls <b>DataClient</b> to persist the transaction (deduct bet, add win, log history).</li>
+ * <li>Returns the full result (numbers, balance, winning lines) to the Gateway.</li>
  * </ol>
- * </p>
  */
 
 @GrpcService
@@ -44,6 +48,16 @@ public class GameServiceImpl extends GameServiceGrpc.GameServiceImplBase {
     public GameServiceImpl(RngClient rngClient, DataClient dataClient) {
         this.rngClient = rngClient;
         this.dataClient = dataClient;
+    }
+
+    private static class SpinResult {
+        long totalWin;
+        List<Integer> winningLines;
+
+        public SpinResult(long totalWin, List<Integer> winningLines) {
+            this.totalWin = totalWin;
+            this.winningLines = winningLines;
+        }
     }
 
     @Override
@@ -82,16 +96,16 @@ public class GameServiceImpl extends GameServiceGrpc.GameServiceImplBase {
             return;
         }
 
-        List<Integer> numbers = rngClient.getNumbers(3);
+        List<Integer> numbers = rngClient.getNumbers(15);
 
-        long winAmount = calculatePayout(numbers, request.getBetAmount());
+        SpinResult result = calculatePayout5x3(numbers, request.getBetAmount());
 
         String spinId = UUID.randomUUID().toString();
 
         PersistenceResponse persistence = dataClient.saveSpin(
                 request.getPlayerId(),
                 request.getBetAmount(),
-                winAmount,
+                result.totalWin,
                 numbers,
                 spinId
         );
@@ -105,28 +119,101 @@ public class GameServiceImpl extends GameServiceGrpc.GameServiceImplBase {
         SpinResponse response = SpinResponse.newBuilder()
                 .setSpinId(spinId)
                 .addAllNumbers(numbers)
-                .setWinAmount(winAmount)
+                .setWinAmount(result.totalWin)
                 .setFinalBalance(persistence.getNewBalance())
+                .addAllWinningLines(result.winningLines)
                 .build();
 
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
 
-    private long calculatePayout(List<Integer> numbers, long betAmount) {
-        if (numbers.size() != 3) return 0;
+    private SpinResult calculatePayout5x3(List<Integer> numbers, long totalBet) {
+        if (numbers.size() != 15) return new SpinResult(0, new ArrayList<>());
 
-        int n1 = numbers.get(0);
-        int n2 = numbers.get(1);
-        int n3 = numbers.get(2);
+        long totalWin = 0;
 
-        if (n1 == n2 && n2 == n3) {
-            return betAmount * 10;
-        } else if (n1 == n2 || n2 == n3 || n1 == n3) {
-            return betAmount * 2;
-        } else {
+        List<Integer> winningLinesIndices = new ArrayList<>();
 
-            return 0;
+        long betPerLine = Math.max(1, totalBet / 5);
+
+        int[][] paylines = {
+                {5, 6, 7, 8, 9},
+                {0, 1, 2, 3, 4},
+                {10, 11, 12, 13, 14},
+                {0, 6, 12, 8, 4},
+                {10, 6, 2, 8, 14}
+        };
+
+        for (int i = 0; i < paylines.length; i++) {
+            long win = checkLineWin(numbers, paylines[i], betPerLine);
+
+            if (win > 0) {
+                totalWin += win;
+                winningLinesIndices.add(i);
+            }
         }
+
+        return new SpinResult(totalWin, winningLinesIndices);
+    }
+
+    private long checkLineWin(List<Integer> grid, int[] lineIndices, long betPerLine) {
+        int firstSymbol = grid.get(lineIndices[0]);
+        int matchCount = 1;
+
+        for (int i = 1; i < lineIndices.length; i++) {
+            if (grid.get(lineIndices[i]) == firstSymbol) {
+                matchCount++;
+            } else {
+                break;
+            }
+        }
+
+        if (firstSymbol == 1 && matchCount >= 2) {
+            return getMultiplier(firstSymbol, matchCount) * betPerLine;
+        }
+
+        if (matchCount >= 3) {
+            return getMultiplier(firstSymbol, matchCount) * betPerLine;
+        }
+
+        return 0;
+    }
+
+    private int getMultiplier(int symbolId, int count)
+    {
+        switch (symbolId)
+        {
+            case 1:
+                if (count == 2) return 1;
+                if (count == 3) return 4;
+                if (count == 4) return 10;
+                if (count == 5) return 40;
+                break;
+
+            case 2:
+            case 3:
+            case 6:
+                if (count == 3) return 4;
+                if (count == 4) return 10;
+                if (count == 5) return 40;
+                break;
+
+            case 4:
+                if (count == 3) return 10;
+                if (count == 4) return 40;
+                if (count == 5) return 100;
+                break;
+
+            case 5:
+                if (count == 3) return 20;
+                if (count == 4) return 200;
+                if (count == 5) return 1000;
+                break;
+
+            default: return 0;
+        }
+
+        return 0;
     }
 }
