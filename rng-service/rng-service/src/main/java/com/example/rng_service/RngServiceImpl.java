@@ -7,7 +7,7 @@ import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+import java.security.SecureRandom;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @GrpcService
 public class RngServiceImpl extends RngServiceGrpc.RngServiceImplBase {
-    private final Random random = new Random();
+    private final SecureRandom secureRandom = new SecureRandom();
     private final AtomicReference<List<Integer>> forcedOutcome = new AtomicReference<>();
 
     @Override
@@ -44,7 +44,7 @@ public class RngServiceImpl extends RngServiceGrpc.RngServiceImplBase {
         } else {
 
             for (int i = 0; i < count; i++) {
-                numbers.add(random.nextInt(6) + 1);
+                numbers.add(secureRandom.nextInt(6) + 1);
             }
             System.out.println("RNG: Generating RANDOM outcome: " + numbers);
         }
@@ -59,5 +59,10 @@ public class RngServiceImpl extends RngServiceGrpc.RngServiceImplBase {
 
     public void setForcedOutcome(List<Integer> outcome) {
         this.forcedOutcome.set(outcome);
+    }
+
+    public void reseed(long seed) {
+        this.secureRandom.setSeed(seed);
+        System.out.println("RNG: Reseeded with value: " + seed);
     }
 }

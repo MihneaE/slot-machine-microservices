@@ -31,6 +31,13 @@ public class AdminController {
     @PostMapping("/force")
     public String forceOutcome(@RequestBody List<Integer> numbers) {
         rngService.setForcedOutcome(numbers);
-        return "OK. Urmatorul spin va fi fortat la: " + numbers;
+        return "OK. Next spin forced to: " + numbers;
+    }
+
+    @PostMapping("/seed")
+    public String reseed(@RequestParam long seed)
+    {
+        rngService.reseed(seed);
+        return "OK. RNG Reseeded.";
     }
 }

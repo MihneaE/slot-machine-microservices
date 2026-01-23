@@ -50,13 +50,21 @@ public class GameServiceImpl extends GameServiceGrpc.GameServiceImplBase {
         this.dataClient = dataClient;
     }
 
-    private static class SpinResult {
+    public static class SpinResult {
         long totalWin;
         List<Integer> winningLines;
 
         public SpinResult(long totalWin, List<Integer> winningLines) {
             this.totalWin = totalWin;
             this.winningLines = winningLines;
+        }
+
+        public long getTotalWin() {
+            return totalWin;
+        }
+
+        public List<Integer> getWinningLines() {
+            return winningLines;
         }
     }
 
@@ -128,7 +136,7 @@ public class GameServiceImpl extends GameServiceGrpc.GameServiceImplBase {
         responseObserver.onCompleted();
     }
 
-    private SpinResult calculatePayout5x3(List<Integer> numbers, long totalBet) {
+    public SpinResult calculatePayout5x3(List<Integer> numbers, long totalBet) {
         if (numbers.size() != 15) return new SpinResult(0, new ArrayList<>());
 
         long totalWin = 0;
@@ -186,29 +194,29 @@ public class GameServiceImpl extends GameServiceGrpc.GameServiceImplBase {
         {
             case 1:
                 if (count == 2) return 1;
-                if (count == 3) return 4;
-                if (count == 4) return 10;
-                if (count == 5) return 40;
+                if (count == 3) return 5;
+                if (count == 4) return 20;
+                if (count == 5) return 50;
                 break;
 
             case 2:
             case 3:
             case 6:
-                if (count == 3) return 4;
-                if (count == 4) return 10;
-                if (count == 5) return 40;
-                break;
-
-            case 4:
-                if (count == 3) return 10;
-                if (count == 4) return 40;
+                if (count == 3) return 5;
+                if (count == 4) return 20;
                 if (count == 5) return 100;
                 break;
 
+            case 4:
+                if (count == 3) return 15;
+                if (count == 4) return 50;
+                if (count == 5) return 250;
+                break;
+
             case 5:
-                if (count == 3) return 20;
+                if (count == 3) return 50;
                 if (count == 4) return 200;
-                if (count == 5) return 1000;
+                if (count == 5) return 2500;
                 break;
 
             default: return 0;
