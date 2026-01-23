@@ -5,17 +5,14 @@ spring:
   application:
     name: data-service
 
-  # --- CONECTAREA LA BAZA DE DATE ---
   datasource:
     url: jdbc:postgresql://localhost:5433/slotdb
     username: postgres
     password: password
     driver-class-name: org.postgresql.Driver
 
-  # --- CONFIGURARE JPA / HIBERNATE ---
   jpa:
     database: POSTGRESQL
-    # 'update' inseamna ca Java va crea automat tabelele (Player, Spin) daca nu exista
     hibernate:
       ddl-auto: update
     show-sql: true

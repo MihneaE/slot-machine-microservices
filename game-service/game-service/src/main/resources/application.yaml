@@ -9,11 +9,11 @@ grpc:
   server:
     port: 9092
   client:
-    # Aici configuram clientul pentru RNG (Zarul)
+
     rng-service:
       address: static://localhost:9091
       negotiation-type: plaintext
-    # Aici configuram clientul pentru Data (Seiful)
+
     data-service:
       address: static://localhost:9093
       negotiation-type: plaintext

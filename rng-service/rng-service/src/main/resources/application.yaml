@@ -1,5 +1,5 @@
 server:
-  port: 8085           # Port HTTP (Punem 8085 ca sa fim siguri ca e liber)
+  port: 8085
 
 spring:
   application:
@@ -7,4 +7,4 @@ spring:
 
 grpc:
   server:
-    port: 9091         # <--- CRITIC! Aici trebuie sa fie 9091, ca sa coincida cu ce cauta Game Service
+    port: 9091

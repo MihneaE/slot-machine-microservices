@@ -47,7 +47,7 @@ public class DataServiceImpl extends DataServiceGrpc.DataServiceImplBase {
     public void getPlayer(PlayerRequest request, StreamObserver<PlayerResponse> responseObserver) {
 
         Player player = playerRepo.findById(request.getPlayerId())
-                .orElseGet(() -> playerRepo.save(new Player(request.getPlayerId(), request.getPlayerId(), 10000L))); // 100.00 credite
+                .orElseGet(() -> playerRepo.save(new Player(request.getPlayerId(), request.getPlayerId(), 10000L)));
 
         PlayerResponse response = PlayerResponse.newBuilder()
                 .setPlayerId(player.getId())
